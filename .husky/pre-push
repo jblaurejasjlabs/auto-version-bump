@@ -1,6 +1,3 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
 echo 'í°¶ Husky: Running local checks before push...'
 
 # Example: run lint and tests before pushing
