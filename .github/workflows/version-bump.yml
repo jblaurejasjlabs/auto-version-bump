@@ -3,7 +3,7 @@ name: Auto Version Bump
 on:
   push:
     branches:
-      - '**'
+      - '**' # run on any branch
 
 jobs:
   version-bump:
@@ -16,26 +16,21 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Check if version already bumped
-        id: check_bump
-        run: |
-          VERSION_BUMP=$(git log -1 --pretty=%B | grep -c "Auto bump version")
-          echo "bumped=$VERSION_BUMP" >> $GITHUB_OUTPUT
+      - name: Install dependencies
+        run: npm install
 
-      - name: Bump version (if not already)
-        if: steps.check_bump.outputs.bumped == '0'
+      - name: Bump version
         run: |
-          echo "í´§ No local bump found â€” running CI version bump"
-          npm version patch -m "Updated version to %s"
+          # Increment patch version (e.g., 1.0.10 â†’ 1.0.11)
+          NEW_VERSION=$(npm version patch -m "Updated version to v%s" | sed 's/v//')
+          echo "New version: $NEW_VERSION"
 
       - name: Push changes
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git push --follow-tags
+          git push origin HEAD --follow-tags
 
