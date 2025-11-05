@@ -3,37 +3,39 @@ name: Auto Version Bump
 on:
   push:
     branches:
-      - '**'  # Run on any branch
+      - '**'
 
 jobs:
   version-bump:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0  # Required for pushing tags and commits
+          fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Configure Git
+      - name: Check if version already bumped
+        id: check_bump
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          VERSION_BUMP=$(git log -1 --pretty=%B | grep -c "Auto bump version")
+          echo "bumped=$VERSION_BUMP" >> $GITHUB_OUTPUT
 
-      - name: Bump version
+      - name: Bump version (if not already)
+        if: steps.check_bump.outputs.bumped == '0'
         run: |
+          echo "í´§ No local bump found â€” running CI version bump"
           npm version patch -m "Updated version to %s"
 
       - name: Push changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          git push origin HEAD:$BRANCH_NAME --follow-tags
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git push --follow-tags
 
