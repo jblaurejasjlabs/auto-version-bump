@@ -1,1 +1,11 @@
-echo 'í°¶ Husky: Auto bumping version before push...'; npm version patch --no-git-tag-version && git add package.json package-lock.json && git commit -m 'Auto bump version [local]' || echo 'No local version bump needed'
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo 'í°¶ Husky: Running local checks before push...'
+
+# Example: run lint and tests before pushing
+npm run lint || exit 1
+npm test || exit 1
+
+echo 'âœ… All checks passed. Proceeding with push...'
+
