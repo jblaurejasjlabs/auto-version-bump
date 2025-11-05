@@ -3,10 +3,7 @@ name: Auto Version Bump
 on:
   push:
     branches:
-      - '**'   # run on any branch
-
-permissions:
-  contents: write
+      - '**'  # Run on any branch
 
 jobs:
   version-bump:
@@ -17,38 +14,24 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
+          fetch-depth: 0  # Needed so Git can push and create tags properly
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
-      - name: Install dependencies
-        run: npm ci || npm install
-
-      - name: Verify or bump version
-        id: bump
+      - name: Bump version
         run: |
-          echo "í´ Checking version..."
-          current_version=$(node -p "require('./package.json').version")
-          echo "Current version: $current_version"
+          # Configure git identity for the commit
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Only bump if no local bump happened
-          if git log -1 --pretty=%B | grep -q "Auto bump version"; then
-            echo "âœ… Local Husky bump detected â€” skipping CI bump."
-            echo "new_version=$current_version" >> $GITHUB_OUTPUT
-          else
-            echo "âš™ï¸ No local bump found â€” bumping via CI."
-            new_version=$(npm version patch --no-git-tag-version)
-            echo "new_version=$new_version" >> $GITHUB_OUTPUT
-          fi
+          # Increment patch version
+          npm version patch -m "Updated version to %s"
 
-      - name: Commit and push updated version
+      - name: Push changes
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json || true
-          git commit -m "Updated version to ${{ steps.bump.outputs.new_version }}" || echo "No changes to commit"
-          git push origin HEAD:${{ github.ref_name }}
+          # Push new commit and tag
+          git push origin HEAD:${{ github.ref_name }} --follow-tags
 
