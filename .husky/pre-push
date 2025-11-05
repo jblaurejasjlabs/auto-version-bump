@@ -1,0 +1,1 @@
+echo 'í°¶ Husky: Auto bumping version before push...'; npm version patch --no-git-tag-version && git add package.json package-lock.json && git commit -m 'Auto bump version [local]' || echo 'No local version bump needed'

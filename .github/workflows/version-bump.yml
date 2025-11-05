@@ -1,0 +1,54 @@
+name: Auto Version Bump
+
+on:
+  push:
+    branches:
+      - '**'   # run on any branch
+
+permissions:
+  contents: write
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Verify or bump version
+        id: bump
+        run: |
+          echo "í´ Checking version..."
+          current_version=$(node -p "require('./package.json').version")
+          echo "Current version: $current_version"
+
+          # Only bump if no local bump happened
+          if git log -1 --pretty=%B | grep -q "Auto bump version"; then
+            echo "âœ… Local Husky bump detected â€” skipping CI bump."
+            echo "new_version=$current_version" >> $GITHUB_OUTPUT
+          else
+            echo "âš™ï¸ No local bump found â€” bumping via CI."
+            new_version=$(npm version patch --no-git-tag-version)
+            echo "new_version=$new_version" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push updated version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json || true
+          git commit -m "Updated version to ${{ steps.bump.outputs.new_version }}" || echo "No changes to commit"
+          git push origin HEAD:${{ github.ref_name }}
+
