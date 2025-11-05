@@ -1,36 +1,51 @@
-name: Auto Version Bump
+name: Auto Increment Version
 
 on:
   push:
     branches:
-      - '**' # run on any branch
+      - '**' # Runs on any branch
 
 jobs:
   version-bump:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write # allow commits
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci || npm install
 
-      - name: Bump version
+      - name: Configure Git
         run: |
-          # Increment patch version (e.g., 1.0.10 ‚Üí 1.0.11)
-          NEW_VERSION=$(npm version patch -m "Updated version to v%s" | sed 's/v//')
-          echo "New version: $NEW_VERSION"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Push changes
+      - name: Bump version in package.json (no tag)
+        id: bump
         run: |
-          git push origin HEAD --follow-tags
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          npm version patch --no-git-tag-version > /dev/null
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "Version bumped: $CURRENT_VERSION ‚Üí $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
+      - name: Commit and push the new version
+        run: |
+          git add package.json package-lock.json || true
+          git commit -m "Ì¥º Updated version to v${{ steps.bump.outputs.new_version }}" || echo "No changes to commit"
+          git push origin HEAD || echo "‚ö†Ô∏è Nothing to push"
+
+      - name: Done
+        run: echo "‚úÖ Package version bumped to v${{ steps.bump.outputs.new_version }}"
